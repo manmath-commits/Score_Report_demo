@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Score Report | Tech Exactly</title>
+  <!-- Load Inter font from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+          colors: {
+            page: '#F5F7FA',
+            navy: {
+              DEFAULT: '#1B3A5C',
+              light: '#E8F0F7',
+              hover: '#142C47',
+            },
+            link: '#2563EB',
+            ink: {
+              DEFAULT: '#111827',
+              secondary: '#6B7280',
+            },
+            divider: '#F0F2F5',
+            track: '#E5E7EB',
+            tint: '#F8FAFC',
+          },
+          boxShadow: {
+            card: '0 1px 3px rgba(16, 24, 40, 0.04), 0 1px 2px rgba(16, 24, 40, 0.02)',
+            popover: '0 10px 15px -3px rgba(16, 24, 40, 0.08), 0 4px 6px -4px rgba(16, 24, 40, 0.04)',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #F5F7FA;
+      color: #111827;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      margin: 0;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D1D5DB;
+      border-radius: 9999px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    @media (min-width: 1024px) {
+      .summary-grid {
+        grid-template-columns: 40fr 35fr 25fr;
+      }
+    }
+    .summary-grid.lifetime-mode {
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 1024px) {
+      .summary-grid.lifetime-mode {
+        grid-template-columns: 48fr 52fr;
+      }
+    }
+
+    .custom-tooltip {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(4px);
+      transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+    }
+    .tooltip-trigger:hover .custom-tooltip,
+    .tooltip-trigger:focus-within .custom-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .item-title-link {
+      color: #2563EB;
+      transition: color 0.15s ease, background-color 0.15s ease;
+    }
+    .item-title-link:hover {
+      color: #1D4ED8;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .breakdown-scroll-container {
+      max-height: 448px;
+      overflow-y: auto;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    .breakdown-scroll-container thead th {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background-color: #FFFFFF;
+      box-shadow: 0 1px 0 #F0F2F5;
+    }
+
+    .breakdown-scroll-container tfoot tr {
+      position: sticky;
+      bottom: 0;
+      z-index: 20;
+      background-color: #FFFFFF;
+      box-shadow: 0 -2px 0 #E5E7EB, 0 -6px 14px -4px rgba(17, 24, 39, 0.06);
+    }
+
+    .group-chevron {
+      transition: transform 0.18s ease;
+    }
+    .group-chevron.collapsed {
+      transform: rotate(-90deg);
+    }
+  </style>
+</head>
+<body class="bg-page text-ink min-h-screen flex flex-col lg:flex-row">
+
+  <!-- Mobile Top Header -->
+  <header class="lg:hidden bg-white border-b border-[#E5E7EB] px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-navy flex items-center justify-center text-white font-bold text-xs tracking-tight">
+        TE
+      </div>
+      <div>
+        <div class="text-sm font-semibold text-ink leading-tight">Tech Exactly</div>
+        <div class="text-[11px] text-ink-secondary leading-tight">Process Management</div>
+      </div>
+    </div>
+    <button id="mobileMenuBtn" type="button" aria-label="Toggle Menu" class="p-2 rounded-lg text-ink-secondary hover:bg-page hover:text-ink transition">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+      </svg>
+    </button>
+  </header>
+
+  <!-- Mobile Sidebar Backdrop -->
+  <div id="sidebarBackdrop" class="fixed inset-0 bg-[#111827]/20 z-30 hidden lg:hidden"></div>
+
+  <!-- 1. Fixed Left Sidebar (248px width) -->
+  <aside id="sidebar" class="fixed top-0 left-0 bottom-0 w-[248px] bg-white border-r border-[#E5E7EB] flex flex-col justify-between z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out">
+    <div>
+      <!-- Top Branding -->
+      <div class="px-5 pt-6 pb-5 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-[10px] bg-navy flex items-center justify-center text-white font-bold text-sm tracking-tight shrink-0">
+          TE
+        </div>
+        <div class="min-w-0">
+          <div class="text-[15px] font-semibold text-ink leading-snug truncate">Tech Exactly</div>
+          <div class="text-xs text-ink-secondary leading-snug truncate">Process Management</div>
+        </div>
+      </div>
+
+      <!-- Navigation List -->
+      <nav aria-label="Main Navigation" class="px-3 mt-2 space-y-1">
+        <a href="#dashboard" onclick="preventNav(event)" class="group flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[14px] font-medium text-ink-secondary hover:bg-[#F8FAFC] hover:text-ink transition-colors">
+          <svg class="w-[18px] h-[18px] text-ink-secondary group-hover:text-ink shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+            <rect x="3" y="14" width="7" height="7" rx="1.5" />
+            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+          </svg>
+          <span>Dashboard</span>
+        </a>
+
+        <a href="#projects" onclick="preventNav(event)" class="group flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[14px] font-medium text-ink-secondary hover:bg-[#F8FAFC] hover:text-ink transition-colors">
+          <svg class="w-[18px] h-[18px] text-ink-secondary group-hover:text-ink shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.879a2.5 2.5 0 0 1 1.768.732l1.121 1.121A2.5 2.5 0 0 0 14.036 7.5H18.5A2.5 2.5 0 0 1 21 10v6.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5v-9Z" />
+          </svg>
+          <span>Projects</span>
+        </a>
+
+        <a href="#fms" onclick="preventNav(event)" class="group flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[14px] font-medium text-ink-secondary hover:bg-[#F8FAFC] hover:text-ink transition-colors">
+          <svg class="w-[18px] h-[18px] text-ink-secondary group-hover:text-ink shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <circle cx="6" cy="6" r="2.5" />
+            <circle cx="18" cy="18" r="2.5" />
+            <circle cx="18" cy="6" r="2.5" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.5 6h7M6 8.5v4A3.5 3.5 0 0 0 9.5 16H15.5" />
+          </svg>
+          <span>FMS</span>
+        </a>
+
+        <a href="#checklists" onclick="preventNav(event)" class="group flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[14px] font-medium text-ink-secondary hover:bg-[#F8FAFC] hover:text-ink transition-colors">
+          <svg class="w-[18px] h-[18px] text-ink-secondary group-hover:text-ink shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="m8.5 12 2.25 2.25L15.5 9.5" />
+          </svg>
+          <span>Checklists</span>
+        </a>
+
+        <!-- Score Report (ACTIVE) -->
+        <a href="#score-report" aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[14px] font-semibold bg-navy-light text-navy transition-colors">
+          <svg class="w-[18px] h-[18px] text-navy shrink-0" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 19.5h16M7 16V10m5 6V6m5 10v-4" />
+          </svg>
+          <span>Score Report</span>
+        </a>
+
+        <a href="#employees" onclick="preventNav(event)" class="group flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[14px] font-medium text-ink-secondary hover:bg-[#F8FAFC] hover:text-ink transition-colors">
+          <svg class="w-[18px] h-[18px] text-ink-secondary group-hover:text-ink shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <circle cx="9" cy="8" r="3.25" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.5 18.5c0-2.761 2.462-4.5 5.5-4.5s5.5 1.739 5.5 4.5" />
+            <circle cx="16.5" cy="9" r="2.5" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 14c2.2 0 4 1.25 4 3.5" />
+          </svg>
+          <span>Employees</span>
+        </a>
+
+        <a href="#settings" onclick="preventNav(event)" class="group flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[14px] font-medium text-ink-secondary hover:bg-[#F8FAFC] hover:text-ink transition-colors">
+          <svg class="w-[18px] h-[18px] text-ink-secondary group-hover:text-ink shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+          </svg>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Bottom Profile -->
+    <div class="p-4 border-t border-divider">
+      <div class="flex items-center gap-3 px-1 py-1">
+        <div class="w-9 h-9 rounded-full bg-navy-light text-navy font-semibold text-xs flex items-center justify-center shrink-0">
+          PD
+        </div>
+        <div class="min-w-0">
+          <div class="text-[14px] font-semibold text-ink leading-tight truncate">Priya Das</div>
+          <div class="text-xs text-ink-secondary leading-tight mt-0.5 truncate">Company Admin</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Workspace Container -->
+  <main class="flex-1 lg:ml-[248px] min-w-0">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 space-y-6">
+
+      <!-- 2. Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 class="text-[24px] font-semibold text-ink tracking-[-0.02em] leading-tight">Score Report</h1>
+          <p class="text-[14px] text-ink-secondary mt-1">Weekly performance of assigned tasks</p>
+        </div>
+        <div class="flex items-center gap-2 text-[13px] text-ink-secondary">
+          <svg class="w-4 h-4 text-ink-secondary shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" />
+          </svg>
+          <span id="generatedAtLabel">Generated Mon 16 Nov 2026, 10:00 AM</span>
+        </div>
+      </div>
+
+      <!-- 3. Filters Card -->
+      <section aria-label="Report Filters" class="bg-white rounded-[16px] shadow-card border border-[#E5E7EB]/60 p-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+
+          <!-- Left Cluster: Week Selector + All (Lifetime) + Type Segmented Control -->
+          <div class="flex flex-wrap items-center gap-3">
+
+            <!-- Week Selector -->
+            <div class="inline-flex items-center bg-white border border-[#E5E7EB] rounded-[10px] h-9">
+              <button id="prevWeekBtn" type="button" title="Previous week" class="h-full px-2.5 text-ink-secondary hover:text-ink hover:bg-page rounded-l-[9px] transition flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <div class="px-3 flex items-center gap-2 text-[13px] font-medium text-ink border-x border-[#E5E7EB] h-full select-none">
+                <svg class="w-3.5 h-3.5 text-ink-secondary shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <rect x="3" y="4.5" width="18" height="16" rx="2.5" />
+                  <path stroke-linecap="round" d="M8 2.5v4M16 2.5v4M3 9.5h18" />
+                </svg>
+                <span id="weekLabel" class="tabular-nums whitespace-nowrap">9 Nov to 14 Nov 2026</span>
+              </div>
+              <button id="nextWeekBtn" type="button" title="Next week" class="h-full px-2.5 text-ink-secondary hover:text-ink hover:bg-page rounded-r-[9px] transition flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- All (Lifetime) Toggle -->
+            <button id="lifetimeToggleBtn" type="button" aria-pressed="false" class="h-9 px-3 rounded-[10px] text-[13px] font-medium text-ink-secondary hover:text-ink hover:bg-page border border-transparent transition whitespace-nowrap">
+              All (Lifetime)
+            </button>
+
+            <div class="hidden sm:block h-5 w-[1px] bg-[#E5E7EB]"></div>
+
+            <!-- Type Segmented Control -->
+            <div role="group" aria-label="Task Type Filter" class="inline-flex items-center bg-page p-1 rounded-[10px] border border-[#E5E7EB]/60">
+              <button type="button" data-type="ALL" class="type-segment px-3 py-1 rounded-[7px] text-[13px] font-medium bg-white text-ink shadow-xs transition">
+                All
+              </button>
+              <button type="button" data-type="PMS" class="type-segment px-3 py-1 rounded-[7px] text-[13px] font-medium text-ink-secondary hover:text-ink transition">
+                PMS
+              </button>
+              <button type="button" data-type="FMS" class="type-segment px-3 py-1 rounded-[7px] text-[13px] font-medium text-ink-secondary hover:text-ink transition">
+                FMS
+              </button>
+              <button type="button" data-type="CHECKLIST" class="type-segment px-3 py-1 rounded-[7px] text-[13px] font-medium text-ink-secondary hover:text-ink transition">
+                Checklist
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Cluster: Item Dropdown + Employee Dropdown -->
+          <div class="flex flex-wrap items-center gap-3">
+
+            <!-- Item Dropdown -->
+            <div class="relative" id="itemDropdownContainer">
+              <button id="itemDropdownBtn" type="button" aria-haspopup="listbox" aria-expanded="false" class="h-9 px-3 bg-white border border-[#E5E7EB] hover:border-[#D1D5DB] rounded-[10px] inline-flex items-center gap-2.5 text-[13px] font-medium text-ink transition">
+                <span id="selectedItemLabel" class="truncate max-w-[200px]">All items</span>
+                <svg class="w-4 h-4 text-ink-secondary shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+
+              <div id="itemDropdownMenu" role="listbox" class="hidden absolute right-0 mt-1.5 w-72 max-h-72 overflow-y-auto bg-white rounded-xl border border-[#E5E7EB] shadow-popover py-1.5 z-30">
+              </div>
+            </div>
+
+            <!-- Employee Dropdown (Company Admin) -->
+            <div class="relative" id="employeeDropdownContainer">
+              <button id="employeeDropdownBtn" type="button" aria-haspopup="listbox" aria-expanded="false" class="h-9 pl-2 pr-3 bg-white border border-[#E5E7EB] hover:border-[#D1D5DB] rounded-[10px] inline-flex items-center gap-2 text-[13px] font-medium text-ink transition">
+                <span id="selectedEmpAvatar" class="w-6 h-6 rounded-full bg-navy-light text-navy font-semibold text-[11px] flex items-center justify-center shrink-0">
+                  PD
+                </span>
+                <span id="selectedEmpName" class="whitespace-nowrap">Priya Das (Me)</span>
+                <span id="selectedEmpRole" class="px-1.5 py-0.5 rounded bg-page text-ink-secondary text-[11px] font-medium">Company Admin</span>
+                <svg class="w-4 h-4 text-ink-secondary shrink-0 ml-0.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+
+              <div id="employeeDropdownMenu" role="listbox" class="hidden absolute right-0 mt-1.5 w-72 max-h-80 overflow-y-auto bg-white rounded-xl border border-[#E5E7EB] shadow-popover py-1.5 z-30"></div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Summary: last week's result first. One card, score on the left, last week's figures on the right. -->
+      <section id="summaryCardsSection" aria-label="Weekly Summary" class="bg-white rounded-[16px] shadow-card border border-[#E5E7EB]/60">
+        <div class="p-6 flex flex-col lg:flex-row lg:items-stretch gap-6 lg:gap-8">
+
+          <!-- Scores: Weekly Score (final score, penalties included) and Done % -->
+          <div class="lg:w-[320px] shrink-0">
+            <div class="flex items-start gap-8">
+              <div>
+                <div id="scoreCardHeading" class="text-[13px] font-medium text-ink-secondary">Weekly Score</div>
+                <div class="relative w-[116px] h-[116px] mt-3">
+                  <svg class="w-[116px] h-[116px] -rotate-90" viewBox="0 0 108 108" aria-hidden="true">
+                    <circle cx="54" cy="54" r="46" fill="none" stroke="#E5E7EB" stroke-width="8" />
+                    <circle id="scoreRingArc" cx="54" cy="54" r="46" fill="none" stroke="#1B3A5C" stroke-width="8" stroke-linecap="round" stroke-dasharray="289.03" stroke-dashoffset="289.03" style="transition: stroke-dashoffset 0.25s ease;" />
+                  </svg>
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <span id="currentScorePercent" class="text-[20px] font-bold text-navy tabular-nums tracking-tight">0.0%</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="text-[13px] font-medium text-ink-secondary">Done %</div>
+                <div class="relative w-[116px] h-[116px] mt-3">
+                  <svg class="w-[116px] h-[116px] -rotate-90" viewBox="0 0 108 108" aria-hidden="true">
+                    <circle cx="54" cy="54" r="46" fill="none" stroke="#E5E7EB" stroke-width="8" />
+                    <circle id="doneRingArc" cx="54" cy="54" r="46" fill="none" stroke="#5B84B1" stroke-width="8" stroke-linecap="round" stroke-dasharray="289.03" stroke-dashoffset="289.03" style="transition: stroke-dashoffset 0.25s ease;" />
+                  </svg>
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <span id="doneRingPercent" class="text-[20px] font-bold text-navy tabular-nums tracking-tight">0.0%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="lastWeekComparisonBox" class="mt-3 text-[13px] text-ink-secondary">
+              Last week <span id="lastWeekPercent" class="font-semibold text-ink tabular-nums">0.0%</span>
+              <span class="mx-1">&middot;</span><span id="deltaText" class="tabular-nums"></span>
+            </div>
+            <div id="currentScoreSubtext" class="mt-1 text-[12px] text-ink-secondary"></div>
+          </div>
+
+          <div class="hidden lg:block w-px bg-divider"></div>
+
+          <!-- Last week's figures -->
+          <div class="flex-1 min-w-0">
+            <div id="workCardHeading" class="text-[13px] font-medium text-ink-secondary">Work in this report week</div>
+            <dl class="mt-3 grid grid-cols-2 gap-x-6 gap-y-6">
+              <div>
+                <dt class="text-[12px] text-ink-secondary">Total Work Assigned</dt>
+                <dd id="statAssigned" class="mt-1 text-[22px] font-semibold text-ink tabular-nums leading-tight">0</dd>
+              </div>
+              <div>
+                <dt class="text-[12px] text-ink-secondary">Total Work Done</dt>
+                <dd id="statDone" class="mt-1 text-[22px] font-semibold text-ink tabular-nums leading-tight">0</dd>
+              </div>
+              <div>
+                <dt class="text-[12px] text-ink-secondary">Total Work Done On Date</dt>
+                <dd id="statOnDate" class="mt-1 text-[22px] font-semibold text-ink tabular-nums leading-tight">0</dd>
+              </div>
+              <div>
+                <dt class="text-[12px] text-ink-secondary" title="Tasks planned in earlier weeks and done in this week. Not counted in any percentage or the score.">Carry Forward Done</dt>
+                <dd id="statCarry" class="mt-1 text-[22px] font-semibold text-ink tabular-nums leading-tight">0</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        <!-- Next week: kept small, the report is about last week -->
+        <div id="nextWeekCard" class="px-6 py-3 border-t border-divider flex items-center gap-2 text-[13px] text-ink-secondary">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <rect x="3" y="4.5" width="18" height="16" rx="2.5" />
+            <path stroke-linecap="round" d="M8 2.5v4M16 2.5v4M3 9.5h18" />
+          </svg>
+          <span>Next week planned: <span id="nextWeekCount" class="font-semibold text-ink tabular-nums">0</span> tasks</span>
+        </div>
+      </section>
+
+      <!-- 5. Breakdown Table Card -->
+      <section aria-label="Score Breakdown Table" class="bg-white rounded-[16px] shadow-card border border-[#E5E7EB]/60 overflow-hidden">
+        <!-- Table Card Header -->
+        <div class="px-6 py-4 border-b border-divider flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div class="flex items-center gap-3">
+            <h2 class="text-[16px] font-semibold text-ink">Breakdown</h2>
+            <button id="toggleAllGroupsBtn" type="button" class="text-[12px] font-medium text-ink-secondary hover:text-navy px-2.5 py-1 rounded-lg hover:bg-page transition">
+              Collapse all
+            </button>
+          </div>
+          <span class="text-[13px] text-ink-secondary">FMS and PMS groups can be expanded; Checklist always remains grouped</span>
+        </div>
+
+        <!-- Scrollable Table Viewport with Sticky Header & Fixed Total Footer -->
+        <div class="breakdown-scroll-container">
+          <table class="w-full border-collapse text-left min-w-[960px]">
+            <thead>
+              <tr>
+                <th scope="col" class="w-[34%] py-3.5 pl-6 pr-4 text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-secondary">
+                  Title
+                </th>
+                <th scope="col" class="py-3.5 px-3.5 text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-secondary">
+                  Assigned
+                </th>
+                <th scope="col" class="py-3.5 px-3.5 text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-secondary" title="Tasks planned in this week and done in this week on or before their planned date (checked by date only, not by time)">
+                  Done On Date
+                </th>
+                <th scope="col" class="py-3.5 px-3.5 text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-secondary" title="Tasks planned in this week and done in this week after their planned date">
+                  Done Late
+                </th>
+                <th scope="col" class="py-3.5 px-3.5 text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-secondary" title="Tasks planned in earlier weeks and done in this week (excluded from percentages and score)">
+                  Carry Forward Done
+                </th>
+                <th scope="col" class="py-3.5 px-3.5 text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-secondary" title="(Done On Date + Done Late) ÷ Assigned × 100">
+                  Done %
+                </th>
+                <th scope="col" class="py-3.5 pl-3.5 pr-6 text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-secondary" title="Done On Date ÷ Assigned × 100">
+                  Done On Date %
+                </th>
+              </tr>
+            </thead>
+
+            <tbody id="breakdownTbody" class="text-[14px] divide-y divide-divider">
+            </tbody>
+
+            <tfoot id="breakdownTfoot" class="text-[14px]">
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
+      <!-- 6. Deductions (Project Coordinator, Frontend Developer, Backend Developer, QA only) -->
+      <section aria-label="Deductions" class="bg-white rounded-[16px] shadow-card border border-[#E5E7EB]/60 overflow-hidden">
+        <div class="px-6 py-4 border-b border-divider flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <h2 class="text-[16px] font-semibold text-ink">Deductions</h2>
+          <span id="penaltyRuleText" class="text-[13px] text-ink-secondary"></span>
+        </div>
+        <div id="deductionsBody"></div>
+      </section>
+
+      <!-- 7. Footnote -->
+      <footer class="pt-0.5 pb-4">
+        <p class="text-[12px] text-ink-secondary">
+          All percentages use a negative scale: −100% means nothing done, 0% means everything done on or before its planned date. Done % = (Done On Date + Done Late) ÷ Assigned × 100 − 100. Done On Date % = Done On Date ÷ Assigned × 100 − 100. Weekly Score = Done On Date % + penalties (best possible: 0%). Done On Date is checked by date only, not by time. Carry Forward Done does not affect any percentage or the score. Penalties apply only to the Project Coordinator, Frontend Developer, Backend Developer and QA roles.
+        </p>
+      </footer>
+
+    </div>
+  </main>
+
+  <!-- Minimalist Toast Notification for Prototype Feedback -->
+  <div id="toastBanner" role="status" aria-live="polite" class="fixed bottom-5 right-5 z-50 hidden items-center gap-2.5 bg-[#111827] text-white text-[13px] font-medium px-4 py-2.5 rounded-xl shadow-popover">
+    <span class="w-2 h-2 rounded-full bg-white"></span>
+    <span id="toastText">Opening source view...</span>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------
+    // Weeks (report week depends on the role's weekend setting)
+    // ---------------------------------------------------------------
+    const WEEKS = [
+      { id: 'W1', labelSat: '26 Oct to 31 Oct 2026', labelSun: '26 Oct to 1 Nov 2026', shortSat: '26 to 31 Oct 2026', shortSun: '26 Oct to 1 Nov 2026', generated: 'Mon 2 Nov 2026, 10:00 AM' },
+      { id: 'W2', labelSat: '2 Nov to 7 Nov 2026', labelSun: '2 Nov to 8 Nov 2026', shortSat: '2 to 7 Nov 2026', shortSun: '2 to 8 Nov 2026', generated: 'Mon 9 Nov 2026, 10:00 AM' },
+      { id: 'W3', labelSat: '9 Nov to 14 Nov 2026', labelSun: '9 Nov to 15 Nov 2026', shortSat: '9 to 14 Nov 2026', shortSun: '9 to 15 Nov 2026', generated: 'Mon 16 Nov 2026, 10:00 AM' },
+      { id: 'W4', labelSat: '16 Nov to 21 Nov 2026', labelSun: '16 Nov to 22 Nov 2026', shortSat: '16 to 21 Nov 2026', shortSun: '16 to 22 Nov 2026', generated: 'Mon 23 Nov 2026, 10:00 AM' }
+    ];
+
+    // ---------------------------------------------------------------
+    // Employees. Penalties apply ONLY to these project roles:
+    //   Project Coordinator, Frontend Developer, Backend Developer, QA.
+    // All other roles (Company Admin, BA, BDM, Content Writer, ...) get
+    // the normal score: -100% + Done On Date %, with no penalties.
+    // ---------------------------------------------------------------
+    const EMPLOYEES = {
+      PD: { id: 'PD', initials: 'PD', name: 'Priya Das (Me)', short: 'Priya Das', role: 'Company Admin', worksWeekends: false, hasPMS: false, variant: 'BASE' },
+      SK: { id: 'SK', initials: 'SK', name: 'Sneha Kapoor', short: 'Sneha Kapoor', role: 'Project Coordinator', worksWeekends: false, hasPMS: true, variant: 'B' },
+      AR: { id: 'AR', initials: 'AR', name: 'Arjun Rao', short: 'Arjun Rao', role: 'Backend Developer', worksWeekends: false, hasPMS: true, variant: 'A' },
+      RV: { id: 'RV', initials: 'RV', name: 'Rahul Verma', short: 'Rahul Verma', role: 'Frontend Developer', worksWeekends: false, hasPMS: true, variant: 'A' },
+      NI: { id: 'NI', initials: 'NI', name: 'Neha Iyer', short: 'Neha Iyer', role: 'QA', worksWeekends: false, hasPMS: true, variant: 'B' },
+      KM: { id: 'KM', initials: 'KM', name: 'Kavya Menon', short: 'Kavya Menon', role: 'BA', worksWeekends: false, hasPMS: true, variant: 'C' },
+      RG: { id: 'RG', initials: 'RG', name: 'Rohan Gupta', short: 'Rohan Gupta', role: 'BDM', worksWeekends: true, hasPMS: false, variant: 'C' },
+      AS: { id: 'AS', initials: 'AS', name: 'Ananya Sen', short: 'Ananya Sen', role: 'Content Writer', worksWeekends: false, hasPMS: false, variant: 'A' }
+    };
+    const EMPLOYEE_ORDER = ['PD', 'SK', 'AR', 'RV', 'NI', 'KM', 'RG', 'AS'];
+
+    // Role -> project team slot. Roles not listed here never get penalties.
+    const ROLE_SLOT = {
+      'Project Coordinator': 'pc',
+      'Frontend Developer': 'fe',
+      'Backend Developer': 'be',
+      'QA': 'qa'
+    };
+    const TARGET_PENALTY_SLOTS = ['pc', 'fe', 'be']; // -10% per story short of target
+    const ISSUE_PENALTY = { qa: 10, fe: 5, be: 5 };  // per entry marked "Issue"
+
+    // ---------------------------------------------------------------
+    // Catalog of items (PMS projects, FMS, Checklist)
+    // ---------------------------------------------------------------
+    const CATALOG = [
+      { id: 'pms-1', group: 'PMS', title: 'E2P Events App' },
+      { id: 'pms-2', group: 'PMS', title: 'Waste-Ops App' },
+      { id: 'pms-3', group: 'PMS', title: 'MedCare Patient Portal' },
+      { id: 'pms-4', group: 'PMS', title: 'HeavyMachinery Fleet ERP' },
+      { id: 'pms-5', group: 'PMS', title: 'FinKids Learning App' },
+      { id: 'pms-6', group: 'PMS', title: 'ProcessFlow Analytics' },
+      { id: 'fms-1', group: 'FMS', title: 'Upsell / Change Request FMS' },
+      { id: 'fms-2', group: 'FMS', title: 'E2P Events App: Issue FMS' },
+      { id: 'fms-3', group: 'FMS', title: 'Paid Discovery FMS' },
+      { id: 'fms-4', group: 'FMS', title: 'Client Onboarding FMS' },
+      { id: 'fms-5', group: 'FMS', title: 'Sprint Release Sign-off FMS' },
+      { id: 'fms-6', group: 'FMS', title: 'Waste-Ops App: Vendor Procurement FMS' },
+      { id: 'fms-7', group: 'FMS', title: 'Waste-Ops App: Issue FMS' },
+      { id: 'chk-1', group: 'CHECKLIST', title: 'Weekly Security & Backup Audit' },
+      { id: 'chk-2', group: 'CHECKLIST', title: 'Sprint Retrospective & QA Checklist' },
+      { id: 'chk-3', group: 'CHECKLIST', title: 'Production Deployment Readiness' },
+      { id: 'chk-4', group: 'CHECKLIST', title: 'Client Status Reporting Checklist' },
+      { id: 'chk-5', group: 'CHECKLIST', title: 'ISO Compliance & Access Review' }
+    ];
+    const CATALOG_BY_ID = Object.fromEntries(CATALOG.map((i) => [i.id, i]));
+
+    // Project teams (one person per role per project) and the project's Issue FMS.
+    // Waste-Ops App is a backend-only project (no Frontend Developer).
+    const PROJECT_TEAMS = {
+      'pms-1': { pc: 'SK', fe: 'RV', be: 'AR', qa: 'NI', issueFms: 'fms-2' },
+      'pms-2': { pc: 'SK', fe: null, be: 'AR', qa: 'NI', issueFms: 'fms-7' }
+    };
+
+    // Weekly story target (Mon to Fri), stories Done after QA (Mon to Fri),
+    // and Issue FMS entries marked "Issue" in that week. target: null = not set.
+    const PROJECT_WEEKS = {
+      'pms-1': {
+        W1: { target: 5, completed: 5, issues: 0 },
+        W2: { target: 6, completed: 4, issues: 1 },
+        W3: { target: 5, completed: 4, issues: 1 },
+        W4: { target: null, completed: 3, issues: 0 }
+      },
+      'pms-2': {
+        W1: { target: 3, completed: 2, issues: 1 },
+        W2: { target: 3, completed: 3, issues: 0 },
+        W3: { target: 4, completed: 3, issues: 2 },
+        W4: { target: 3, completed: 3, issues: 0 }
+      }
+    };
+
+    // Base weekly metrics per item.
+    // Format: [assigned, doneLate, doneOnTime, carryForward, lwAssigned, lwOnTime, nextWeek]
+    // On time is checked by DATE only (done on or before the planned date).
+    const BASE_METRICS = {
+      'pms-1': { W1: [7, 1, 6, 1, 8, 7, 8], W2: [10, 1, 8, 1, 7, 6, 8], W3: [8, 1, 6, 1, 10, 8, 6], W4: [6, 1, 5, 0, 8, 6, 7] },
+      'pms-2': { W1: [6, 1, 4, 0, 6, 4, 5], W2: [5, 1, 3, 1, 6, 4, 5], W3: [5, 1, 4, 0, 5, 3, 4], W4: [4, 0, 4, 1, 5, 4, 5] },
+      'pms-3': { W1: [6, 1, 5, 1, 5, 4, 7], W2: [7, 0, 6, 0, 6, 5, 6], W3: [6, 1, 5, 1, 7, 6, 5], W4: [5, 0, 4, 0, 6, 5, 6] },
+      'pms-4': { W1: [8, 2, 5, 1, 7, 5, 6], W2: [6, 1, 4, 1, 8, 5, 7], W3: [7, 1, 5, 1, 6, 4, 6], W4: [6, 1, 4, 0, 7, 5, 5] },
+      'pms-5': { W1: [4, 0, 4, 0, 4, 3, 5], W2: [5, 1, 4, 0, 4, 4, 4], W3: [4, 1, 3, 0, 5, 4, 4], W4: [4, 0, 3, 0, 4, 3, 4] },
+      'pms-6': { W1: [5, 0, 4, 1, 5, 4, 6], W2: [6, 1, 5, 0, 5, 4, 5], W3: [5, 0, 4, 1, 6, 5, 5], W4: [5, 1, 4, 0, 5, 4, 4] },
+      'fms-1': { W1: [3, 1, 2, 0, 3, 3, 3], W2: [3, 0, 3, 1, 3, 2, 3], W3: [3, 0, 3, 0, 3, 3, 2], W4: [2, 0, 2, 0, 3, 3, 3] },
+      'fms-2': { W1: [5, 1, 3, 1, 4, 3, 4], W2: [4, 1, 3, 0, 5, 3, 4], W3: [4, 1, 2, 1, 4, 3, 3], W4: [3, 1, 2, 0, 4, 2, 3] },
+      'fms-3': { W1: [2, 1, 1, 0, 2, 1, 2], W2: [2, 0, 1, 0, 2, 1, 2], W3: [2, 0, 1, 0, 2, 1, 1], W4: [2, 0, 2, 0, 2, 1, 2] },
+      'fms-4': { W1: [4, 0, 4, 1, 4, 3, 5], W2: [5, 0, 4, 0, 4, 4, 4], W3: [4, 1, 3, 1, 5, 4, 4], W4: [4, 0, 3, 0, 4, 3, 3] },
+      'fms-5': { W1: [3, 0, 3, 0, 3, 2, 4], W2: [4, 0, 4, 0, 3, 3, 3], W3: [3, 0, 3, 0, 4, 4, 3], W4: [3, 1, 2, 0, 3, 3, 3] },
+      'fms-6': { W1: [3, 0, 2, 0, 3, 2, 3], W2: [3, 1, 2, 0, 3, 2, 3], W3: [3, 0, 2, 0, 3, 2, 2], W4: [2, 0, 2, 0, 3, 2, 2] },
+      'fms-7': { W1: [3, 1, 2, 0, 3, 2, 3], W2: [2, 0, 2, 0, 3, 2, 2], W3: [4, 1, 2, 1, 2, 2, 3], W4: [2, 0, 2, 0, 4, 2, 2] },
+      'chk-1': { W1: [4, 0, 4, 0, 4, 4, 4], W2: [4, 0, 4, 0, 4, 4, 4], W3: [4, 0, 4, 0, 4, 4, 4], W4: [4, 0, 4, 0, 4, 4, 4] },
+      'chk-2': { W1: [5, 1, 4, 0, 5, 4, 5], W2: [5, 0, 5, 1, 5, 4, 5], W3: [5, 1, 4, 1, 5, 5, 5], W4: [5, 0, 4, 0, 5, 4, 5] },
+      'chk-3': { W1: [4, 0, 3, 1, 4, 3, 4], W2: [4, 1, 3, 0, 4, 3, 4], W3: [4, 1, 3, 0, 4, 3, 4], W4: [4, 1, 3, 0, 4, 3, 4] },
+      'chk-4': { W1: [4, 0, 4, 0, 4, 3, 4], W2: [4, 0, 4, 0, 4, 4, 4], W3: [4, 0, 3, 0, 4, 4, 4], W4: [4, 0, 4, 0, 4, 3, 4] },
+      'chk-5': { W1: [3, 0, 3, 0, 3, 3, 3], W2: [3, 0, 3, 0, 3, 3, 3], W3: [3, 0, 3, 0, 3, 3, 3], W4: [3, 0, 3, 0, 3, 3, 3] }
+    };
+
+    // Sample data per employee (deterministic variations of the base data)
+    function getItemRecord(itemId, weekId, empId) {
+      const base = BASE_METRICS[itemId][weekId];
+      const variant = EMPLOYEES[empId].variant;
+      if (variant === 'BASE') {
+        return { assigned: base[0], done: base[1], onTime: base[2], carryForward: base[3], lwAssigned: base[4], lwOnTime: base[5], nextWeek: base[6] };
+      }
+      const seed = itemId.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0) + weekId.charCodeAt(1) + empId.charCodeAt(0);
+      let assigned, onTime, done, carryForward, lwAssigned, lwOnTime, nextWeek;
+      if (variant === 'A') {
+        assigned = Math.max(2, base[0] + (seed % 2 === 0 ? 1 : 0));
+        onTime = Math.max(1, Math.min(assigned, base[2] + 1));
+        done = Math.max(0, Math.min(assigned - onTime, base[1]));
+        carryForward = seed % 3 === 0 ? 1 : 0;
+        lwAssigned = Math.max(2, base[4] + (seed % 2));
+        lwOnTime = Math.max(1, Math.min(lwAssigned, base[5] + 1));
+        nextWeek = Math.max(1, base[6] + 1);
+      } else if (variant === 'B') {
+        assigned = Math.max(2, base[0] - (seed % 2));
+        onTime = Math.max(1, Math.min(assigned, base[2]));
+        done = Math.max(0, Math.min(assigned - onTime, base[1]));
+        carryForward = seed % 4 === 0 ? 1 : 0;
+        lwAssigned = Math.max(2, base[4] - (seed % 2));
+        lwOnTime = Math.max(1, Math.min(lwAssigned, base[5]));
+        nextWeek = Math.max(1, base[6]);
+      } else {
+        assigned = Math.max(2, base[0] + (seed % 3 === 0 ? 1 : -1));
+        onTime = Math.max(1, Math.min(assigned, base[2]));
+        done = Math.max(0, Math.min(assigned - onTime, 1));
+        carryForward = seed % 2 === 0 ? 1 : 0;
+        lwAssigned = Math.max(2, base[4]);
+        lwOnTime = Math.max(1, Math.min(lwAssigned, base[5] - (seed % 2)));
+        nextWeek = Math.max(1, base[6] - (seed % 2));
+      }
+      return { assigned, done, onTime, carryForward, lwAssigned, lwOnTime, nextWeek };
+    }
+
+    // ---------------------------------------------------------------
+    // Application state
+    // ---------------------------------------------------------------
+    let currentWeekIndex = 2; // "9 Nov to 14 Nov 2026"
+    let isLifetime = false;
+    let activeType = 'ALL'; // ALL | PMS | FMS | CHECKLIST
+    let selectedItemTitle = 'All items';
+    let selectedEmpId = 'PD';
+    let selectedEmployeeShort = 'Priya Das';
+    const collapsedGroups = { PMS: false, FMS: false };
+
+    // DOM references
+    const weekLabelEl = document.getElementById('weekLabel');
+    const prevWeekBtn = document.getElementById('prevWeekBtn');
+    const nextWeekBtn = document.getElementById('nextWeekBtn');
+    const lifetimeToggleBtn = document.getElementById('lifetimeToggleBtn');
+    const typeSegments = document.querySelectorAll('.type-segment');
+    const itemDropdownBtn = document.getElementById('itemDropdownBtn');
+    const itemDropdownMenu = document.getElementById('itemDropdownMenu');
+    const selectedItemLabel = document.getElementById('selectedItemLabel');
+    const employeeDropdownBtn = document.getElementById('employeeDropdownBtn');
+    const employeeDropdownMenu = document.getElementById('employeeDropdownMenu');
+    const selectedEmpAvatar = document.getElementById('selectedEmpAvatar');
+    const selectedEmpName = document.getElementById('selectedEmpName');
+    const selectedEmpRole = document.getElementById('selectedEmpRole');
+    const breakdownTbody = document.getElementById('breakdownTbody');
+    const breakdownTfoot = document.getElementById('breakdownTfoot');
+    const toggleAllGroupsBtn = document.getElementById('toggleAllGroupsBtn');
+
+    // ---------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function getGroupIconSvg(group) {
+      if (group === 'PMS') {
+        return `<svg class="w-4 h-4 text-navy shrink-0" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.879a2.5 2.5 0 0 1 1.768.732l1.121 1.121A2.5 2.5 0 0 0 14.036 7.5H18.5A2.5 2.5 0 0 1 21 10v6.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5v-9Z" /></svg>`;
+      }
+      if (group === 'FMS') {
+        return `<svg class="w-4 h-4 text-navy shrink-0" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><circle cx="18" cy="6" r="2.5" /><path stroke-linecap="round" stroke-linejoin="round" d="M8.5 6h7M6 8.5v4A3.5 3.5 0 0 0 9.5 16H15.5" /></svg>`;
+      }
+      return `<svg class="w-4 h-4 text-navy shrink-0" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3" /><path stroke-linecap="round" stroke-linejoin="round" d="m8.5 12 2.25 2.25L15.5 9.5" /></svg>`;
+    }
+
+    const LINK_ARROW = `<svg class="w-3.5 h-3.5 shrink-0 opacity-85" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17 17 7M9 7h8v8" /></svg>`;
+
+    function calcPct(num, den) {
+      if (!den) return null;
+      return (num / den) * 100;
+    }
+
+    function formatPct(pct) {
+      // Negative scale: -100% = nothing done, 0% = everything done (never above 0%)
+      return pct === null ? 'No tasks assigned' : formatSigned(pct - 100);
+    }
+
+    // Scores and penalties use a true minus sign
+    function formatSigned(val) {
+      const rounded = Math.round(val * 10) / 10;
+      if (rounded === 0) return '0.0%';
+      return `${rounded < 0 ? '−' : '+'}${Math.abs(rounded).toFixed(1)}%`;
+    }
+
+    function formatPenalty(val) {
+      return val === 0 ? '0.0%' : `−${val.toFixed(1)}%`;
+    }
+
+    function weekLabelFor(empId, idx) {
+      const w = WEEKS[idx];
+      return EMPLOYEES[empId].worksWeekends ? w.labelSun : w.labelSat;
+    }
+
+    function weekShortFor(empId, idx) {
+      const w = WEEKS[idx];
+      return EMPLOYEES[empId].worksWeekends ? w.shortSun : w.shortSat;
+    }
+
+    function itemMatchesFilters(item) {
+      const emp = EMPLOYEES[selectedEmpId];
+      const matchEmployeeScope = emp.hasPMS || item.group !== 'PMS';
+      const matchType = activeType === 'ALL' || item.group === activeType;
+      const matchItem = selectedItemTitle === 'All items' || item.title === selectedItemTitle;
+      return matchEmployeeScope && matchType && matchItem;
+    }
+
+    // ---------------------------------------------------------------
+    // Penalties (only for Project Coordinator, Frontend/Backend Developer, QA)
+    // ---------------------------------------------------------------
+    function getRoleSlot(empId) {
+      return ROLE_SLOT[EMPLOYEES[empId].role] || null;
+    }
+
+    function getDeductions(empId, weekIdx) {
+      const slot = getRoleSlot(empId);
+      if (!slot) return [];
+      const weekId = WEEKS[weekIdx].id;
+      const list = [];
+      Object.keys(PROJECT_TEAMS).forEach((projectId) => {
+        const team = PROJECT_TEAMS[projectId];
+        if (team[slot] !== empId) return;
+        const pw = PROJECT_WEEKS[projectId][weekId];
+        const projectTitle = CATALOG_BY_ID[projectId].title;
+
+        // Story target penalty: -10% per story short (Project Coordinator, Frontend, Backend)
+        if (TARGET_PENALTY_SLOTS.includes(slot) && pw.target !== null && pw.completed < pw.target) {
+          const short = pw.target - pw.completed;
+          list.push({
+            itemId: projectId,
+            sourceTitle: projectTitle,
+            sourceKind: 'project',
+            reason: 'Story target missed',
+            detail: `Target ${pw.target}, completed ${pw.completed} (Mon to Fri)`,
+            count: short,
+            pct: short * 10
+          });
+        }
+
+        // Issue penalty: QA -10%, Frontend -5%, Backend -5% per entry marked "Issue"
+        if (ISSUE_PENALTY[slot] && pw.issues > 0) {
+          const per = ISSUE_PENALTY[slot];
+          list.push({
+            itemId: team.issueFms,
+            sourceTitle: CATALOG_BY_ID[team.issueFms].title,
+            sourceKind: 'issue',
+            reason: 'Issue reported',
+            detail: `${pw.issues} ${pw.issues > 1 ? 'entries' : 'entry'} marked as Issue (−${per}% each)`,
+            count: pw.issues,
+            pct: pw.issues * per
+          });
+        }
+      });
+      // Respect Type and Item filters (penalties belong to the item they come from)
+      return list.filter((d) => itemMatchesFilters(CATALOG_BY_ID[d.itemId]));
+    }
+
+    function getPenaltyRuleText(empId) {
+      const emp = EMPLOYEES[empId];
+      const slot = getRoleSlot(empId);
+      if (!slot) {
+        return `No penalties apply to the ${emp.role} role. Weekly Score = Done On Date %.`;
+      }
+      const rules = [];
+      if (TARGET_PENALTY_SLOTS.includes(slot)) rules.push('−10% per story short of the weekly target');
+      if (ISSUE_PENALTY[slot]) rules.push(`−${ISSUE_PENALTY[slot]}% per Issue FMS entry marked as Issue`);
+      return `${emp.role}: ${rules.join(' · ')}`;
+    }
+
+    // ---------------------------------------------------------------
+    // Week calculation (totals, Done On Date %, penalty, score)
+    // ---------------------------------------------------------------
+    function computeWeek(weekIdx) {
+      const weekId = WEEKS[weekIdx].id;
+      const t = { assigned: 0, done: 0, onTime: 0, carryForward: 0, nextWeek: 0, lwAssigned: 0, lwOnTime: 0 };
+      CATALOG.filter(itemMatchesFilters).forEach((item) => {
+        const r = getItemRecord(item.id, weekId, selectedEmpId);
+        t.assigned += r.assigned;
+        t.done += r.done;
+        t.onTime += r.onTime;
+        t.carryForward += r.carryForward;
+        t.nextWeek += r.nextWeek;
+        t.lwAssigned += r.lwAssigned;
+        t.lwOnTime += r.lwOnTime;
+      });
+      const onTimePct = calcPct(t.onTime, t.assigned);
+      const deductions = getDeductions(selectedEmpId, weekIdx);
+      const penalty = deductions.reduce((s, d) => s + d.pct, 0);
+      // Weekly Score = -100% + Done On Date % - Total Penalty % (best possible: 0%)
+      const score = -100 + (onTimePct === null ? 0 : onTimePct) - penalty;
+      return { ...t, donePct: calcPct(t.done + t.onTime, t.assigned), onTimePct, deductions, penalty, score };
+    }
+
+    function getLastWeekScore() {
+      if (currentWeekIndex > 0) return computeWeek(currentWeekIndex - 1).score;
+      // First week in the prototype: use the saved previous-week counts, no penalties on record
+      const w = computeWeek(0);
+      const pct = calcPct(w.lwOnTime, w.lwAssigned);
+      return -100 + (pct === null ? 0 : pct);
+    }
+
+    function getItemMetrics(itemId) {
+      if (!isLifetime) return getItemRecord(itemId, WEEKS[currentWeekIndex].id, selectedEmpId);
+      return WEEKS.reduce((acc, w) => {
+        const rec = getItemRecord(itemId, w.id, selectedEmpId);
+        acc.assigned += rec.assigned;
+        acc.done += rec.done;
+        acc.onTime += rec.onTime;
+        acc.carryForward += rec.carryForward;
+        return acc;
+      }, { assigned: 0, done: 0, onTime: 0, carryForward: 0, nextWeek: 0 });
+    }
+
+    // ---------------------------------------------------------------
+    // Employee dropdown (Company Admin only)
+    // ---------------------------------------------------------------
+    function renderEmployeeDropdown() {
+      employeeDropdownMenu.innerHTML = EMPLOYEE_ORDER.map((id) => {
+        const e = EMPLOYEES[id];
+        const sel = id === selectedEmpId;
+        const weekText = e.worksWeekends ? 'Mon to Sun' : 'Mon to Sat';
+        return `
+          <button type="button" data-emp-id="${id}" class="emp-option w-full text-left px-3.5 py-2 text-[13px] ${sel ? 'bg-navy-light/60' : 'hover:bg-page'} flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded-full ${sel ? 'bg-navy-light text-navy' : 'bg-page text-ink'} font-semibold text-[11px] flex items-center justify-center">${e.initials}</span>
+              <div>
+                <div class="font-medium ${sel ? 'text-navy' : 'text-ink'}">${escapeHtml(e.name)}</div>
+                <div class="text-[11px] text-ink-secondary">${escapeHtml(e.role)} · ${weekText}</div>
+              </div>
+            </div>
+            <svg class="w-3.5 h-3.5 text-navy check-icon ${sel ? '' : 'hidden'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+          </button>`;
+      }).join('');
+
+      employeeDropdownMenu.querySelectorAll('.emp-option').forEach((option) => {
+        option.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const e = EMPLOYEES[option.dataset.empId];
+          selectedEmpId = e.id;
+          selectedEmployeeShort = e.short;
+          selectedEmpAvatar.textContent = e.initials;
+          selectedEmpName.textContent = e.name;
+          selectedEmpRole.textContent = e.role;
+          selectedItemTitle = 'All items';
+          renderEmployeeDropdown();
+          renderItemDropdown();
+          renderReport();
+          closeAllDropdowns();
+        });
+      });
+    }
+
+    // ---------------------------------------------------------------
+    // Item dropdown: lists PMS projects / FMS of the selected employee.
+    // Not available for Checklist (one combined row).
+    // ---------------------------------------------------------------
+    function renderItemDropdown() {
+      const emp = EMPLOYEES[selectedEmpId];
+      const isChecklist = activeType === 'CHECKLIST';
+      itemDropdownBtn.disabled = isChecklist;
+      itemDropdownBtn.classList.toggle('opacity-50', isChecklist);
+      itemDropdownBtn.classList.toggle('cursor-not-allowed', isChecklist);
+
+      if (isChecklist) {
+        selectedItemTitle = 'All items';
+        selectedItemLabel.textContent = 'Not available for Checklist';
+        itemDropdownMenu.innerHTML = '';
+        return;
+      }
+
+      const eligibleItems = CATALOG.filter((item) => {
+        if (item.group === 'CHECKLIST') return false;
+        const allowedForEmployee = emp.hasPMS || item.group !== 'PMS';
+        const matchesType = activeType === 'ALL' || item.group === activeType;
+        return allowedForEmployee && matchesType;
+      });
+
+      if (eligibleItems.length === 0) {
+        selectedItemTitle = 'All items';
+        selectedItemLabel.textContent = 'No items';
+        itemDropdownMenu.innerHTML = `<div class="px-3.5 py-2.5 text-[13px] text-ink-secondary">No items</div>`;
+        return;
+      }
+
+      if (selectedItemTitle !== 'All items' && !eligibleItems.some((i) => i.title === selectedItemTitle)) {
+        selectedItemTitle = 'All items';
+      }
+      selectedItemLabel.textContent = selectedItemTitle;
+
+      const options = ['All items', ...eligibleItems.map((i) => i.title)];
+      itemDropdownMenu.innerHTML = options.map((title) => {
+        const isSelected = title === selectedItemTitle;
+        return `
+          <button type="button" data-item="${escapeHtml(title)}" class="item-option w-full text-left px-3.5 py-2 text-[13px] ${isSelected ? 'font-medium text-navy bg-navy-light/60' : 'text-ink hover:bg-page'} flex items-center justify-between gap-2">
+            <span class="truncate">${escapeHtml(title)}</span>
+            <svg class="w-3.5 h-3.5 text-navy shrink-0 ${isSelected ? '' : 'hidden'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+          </button>`;
+      }).join('');
+
+      itemDropdownMenu.querySelectorAll('.item-option').forEach((btn) => {
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          selectedItemTitle = btn.dataset.item;
+          renderItemDropdown();
+          renderReport();
+          closeAllDropdowns();
+        });
+      });
+    }
+
+    // ---------------------------------------------------------------
+    // Breakdown table
+    // ---------------------------------------------------------------
+    function toggleGroupCollapse(group) {
+      if (group === 'CHECKLIST') return;
+      collapsedGroups[group] = !collapsedGroups[group];
+      renderReport();
+    }
+
+    function syncToggleAllLabel(visibleGroups) {
+      toggleAllGroupsBtn.classList.toggle('hidden', visibleGroups.length === 0);
+      if (!visibleGroups.length) return;
+      const allCollapsed = visibleGroups.every((g) => collapsedGroups[g]);
+      toggleAllGroupsBtn.textContent = allCollapsed ? 'Expand all' : 'Collapse all';
+    }
+
+    toggleAllGroupsBtn.addEventListener('click', () => {
+      const emp = EMPLOYEES[selectedEmpId];
+      const allowedGroups = emp.hasPMS ? ['PMS', 'FMS'] : ['FMS'];
+      const visibleGroups = allowedGroups.filter((g) => activeType === 'ALL' || activeType === g);
+      const allCollapsed = visibleGroups.every((g) => collapsedGroups[g]);
+      visibleGroups.forEach((g) => { collapsedGroups[g] = !allCollapsed; });
+      renderReport();
+    });
+
+    function pctCell(pct, strong) {
+      if (pct === null) return `<span class="text-[12px] ${strong ? 'font-semibold' : ''} text-ink-secondary">No tasks assigned</span>`;
+      return `<div class="inline-flex items-center justify-end gap-3">
+          <div class="w-[56px] h-[4px] bg-track rounded-full overflow-hidden shrink-0"><div class="h-full bg-navy rounded-full" style="width: ${Math.min(100, pct).toFixed(1)}%;"></div></div>
+          <span class="${strong ? 'font-bold' : 'font-semibold'} text-navy tabular-nums w-[60px] text-right">${formatSigned(pct - 100)}</span>
+        </div>`;
+    }
+
+    function renderBreakdown(dateSpan) {
+      const emp = EMPLOYEES[selectedEmpId];
+      const groupsOrder = emp.hasPMS ? ['PMS', 'FMS', 'CHECKLIST'] : ['FMS', 'CHECKLIST'];
+      const filteredItems = CATALOG.filter(itemMatchesFilters);
+      const grand = { assigned: 0, done: 0, onTime: 0, carryForward: 0 };
+      const visibleGroups = [];
+      let tbodyHtml = '';
+
+      groupsOrder.forEach((groupName) => {
+        const groupItems = filteredItems.filter((item) => item.group === groupName);
+        const grp = { assigned: 0, done: 0, onTime: 0, carryForward: 0 };
+        const rows = [];
+        groupItems.forEach((item) => {
+          const m = getItemMetrics(item.id);
+          // Show only items with relevant tasks (assigned in week, or carry forward done in week)
+          if (m.assigned === 0 && m.carryForward === 0) return;
+          grp.assigned += m.assigned; grp.done += m.done; grp.onTime += m.onTime; grp.carryForward += m.carryForward;
+          rows.push({ ...item, ...m, donePct: calcPct(m.done + m.onTime, m.assigned), onTimePct: calcPct(m.onTime, m.assigned) });
+        });
+        if (!rows.length) return;
+        visibleGroups.push(groupName);
+        Object.keys(grand).forEach((k) => { grand[k] += grp[k]; });
+
+        const grpDonePct = calcPct(grp.done + grp.onTime, grp.assigned);
+        const grpOnTimePct = calcPct(grp.onTime, grp.assigned);
+        const canExpand = groupName !== 'CHECKLIST';
+        const isCollapsed = !canExpand || collapsedGroups[groupName];
+
+        const titleCellHtml = canExpand
+          ? `<div class="flex items-center gap-2">
+              <svg class="w-3.5 h-3.5 text-navy/80 shrink-0 group-chevron ${isCollapsed ? 'collapsed' : ''}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" /></svg>
+              ${getGroupIconSvg(groupName)}
+              <span>${groupName}</span>
+              <span class="text-[11px] font-medium text-ink-secondary normal-case tracking-normal ml-1">(${rows.length})</span>
+            </div>`
+          : `<div class="flex items-center gap-2">
+              ${getGroupIconSvg(groupName)}
+              <button type="button" onclick="event.stopPropagation(); openItemSource('Checklist', 'CHECKLIST')" class="item-title-link inline-flex items-center gap-1.5 font-semibold uppercase tracking-[0.03em] text-[13px] focus:outline-none">
+                <span>CHECKLIST</span>${LINK_ARROW}
+              </button>
+            </div>`;
+
+        tbodyHtml += `
+          <tr data-group-header="${groupName}" ${canExpand ? `onclick="toggleGroupCollapse('${groupName}')"` : ''} class="bg-tint hover:bg-[#F1F5F9] h-[54px] ${canExpand ? 'cursor-pointer select-none' : ''} transition-colors">
+            <td class="pl-6 pr-4 font-semibold text-navy uppercase tracking-[0.03em] text-[13px]">${titleCellHtml}</td>
+            <td class="px-3.5 text-right font-semibold text-navy tabular-nums">${grp.assigned}</td>
+            <td class="px-3.5 text-right font-semibold text-navy tabular-nums">${grp.onTime}</td>
+            <td class="px-3.5 text-right font-semibold text-navy tabular-nums">${grp.done}</td>
+            <td class="px-3.5 text-right font-semibold text-navy tabular-nums">${grp.carryForward}</td>
+            <td class="px-3.5 text-right font-semibold text-navy tabular-nums">${formatPct(grpDonePct)}</td>
+            <td class="pl-3.5 pr-6 text-right">${pctCell(grpOnTimePct, false)}</td>
+          </tr>`;
+
+        if (canExpand && !isCollapsed) {
+          rows.forEach((row) => {
+            const safeTitle = row.title.replace(/'/g, "\\'");
+            const destinationLabel = row.group === 'PMS' ? 'Story tab' : 'entry log';
+            const showTip = row.title === 'E2P Events App';
+            const tooltipHtml = showTip
+              ? `<div role="tooltip" class="custom-tooltip pointer-events-none absolute left-[32px] bottom-full mb-2 z-50 whitespace-nowrap bg-[#111827] text-white text-[12px] font-normal px-3 py-2 rounded-lg shadow-popover">
+                  Open ${escapeHtml(row.title)} ${destinationLabel} (filtered to ${escapeHtml(selectedEmployeeShort)}, ${dateSpan})
+                  <div class="absolute left-4 top-full w-2 h-2 bg-[#111827] rotate-45 -mt-1"></div>
+                </div>`
+              : '';
+            tbodyHtml += `
+              <tr data-group-child="${groupName}" class="h-[54px] bg-white hover:bg-[#F8FAFC]/70 transition-colors">
+                <td class="pl-6 pr-4">
+                  <div class="pl-[32px] relative inline-block ${showTip ? 'tooltip-trigger' : ''}">
+                    <button type="button" onclick="openItemSource('${safeTitle}', '${row.group}')" class="item-title-link inline-flex items-center gap-1.5 font-medium text-left focus:outline-none">
+                      <span>${escapeHtml(row.title)}</span>${LINK_ARROW}
+                    </button>
+                    ${tooltipHtml}
+                  </div>
+                </td>
+                <td class="px-3.5 text-right text-ink tabular-nums">${row.assigned}</td>
+                <td class="px-3.5 text-right text-ink tabular-nums">${row.onTime}</td>
+                <td class="px-3.5 text-right text-ink tabular-nums">${row.done}</td>
+                <td class="px-3.5 text-right text-ink tabular-nums">${row.carryForward}</td>
+                <td class="px-3.5 text-right text-ink-secondary tabular-nums">${formatPct(row.donePct)}</td>
+                <td class="pl-3.5 pr-6 text-right">${pctCell(row.onTimePct, false)}</td>
+              </tr>`;
+          });
+        }
+      });
+
+      if (!tbodyHtml) {
+        tbodyHtml = `<tr><td colspan="7" class="py-10 text-center text-[13px] text-ink-secondary">No tasks assigned</td></tr>`;
+      }
+      breakdownTbody.innerHTML = tbodyHtml;
+      syncToggleAllLabel(visibleGroups.filter((g) => g !== 'CHECKLIST'));
+
+      const totalDonePct = calcPct(grand.done + grand.onTime, grand.assigned);
+      const totalOnTimePct = calcPct(grand.onTime, grand.assigned);
+      breakdownTfoot.innerHTML = `
+        <tr id="totalRow" class="h-[58px]">
+          <td class="pl-6 pr-4 font-bold text-navy">Total</td>
+          <td class="px-3.5 text-right font-bold text-navy tabular-nums">${grand.assigned}</td>
+          <td class="px-3.5 text-right font-bold text-navy tabular-nums">${grand.onTime}</td>
+          <td class="px-3.5 text-right font-bold text-navy tabular-nums">${grand.done}</td>
+          <td class="px-3.5 text-right font-bold text-navy tabular-nums">${grand.carryForward}</td>
+          <td class="px-3.5 text-right font-bold text-navy tabular-nums">${formatPct(totalDonePct)}</td>
+          <td class="pl-3.5 pr-6 text-right">${pctCell(totalOnTimePct, true)}</td>
+        </tr>`;
+    }
+
+    // ---------------------------------------------------------------
+    // Deductions list
+    // ---------------------------------------------------------------
+    function renderDeductions(deductions) {
+      const body = document.getElementById('deductionsBody');
+      const ruleEl = document.getElementById('penaltyRuleText');
+      ruleEl.textContent = getPenaltyRuleText(selectedEmpId);
+      const slot = getRoleSlot(selectedEmpId);
+
+      if (!slot) {
+        body.innerHTML = `<div class="px-6 py-8 text-center text-[13px] text-ink-secondary">Penalties do not apply to the ${escapeHtml(EMPLOYEES[selectedEmpId].role)} role. This report uses the normal score only.</div>`;
+        return;
+      }
+      if (!deductions.length) {
+        body.innerHTML = `<div class="px-6 py-8 text-center text-[13px] text-ink-secondary">${isLifetime ? 'No deductions' : 'No deductions this week'}</div>`;
+        return;
+      }
+
+      const total = deductions.reduce((s, d) => s + d.pct, 0);
+      const rowsHtml = deductions.map((d) => {
+        const safe = d.sourceTitle.replace(/'/g, "\\'");
+        return `
+          <tr class="h-[52px] hover:bg-[#F8FAFC]/70 transition-colors">
+            <td class="pl-6 pr-4">
+              <button type="button" onclick="openDeductionSource('${safe}', '${d.sourceKind}')" class="item-title-link inline-flex items-center gap-1.5 font-medium text-left focus:outline-none">
+                <span>${escapeHtml(d.sourceTitle)}</span>${LINK_ARROW}
+              </button>
+            </td>
+            <td class="px-3.5 text-ink">${d.reason}</td>
+            <td class="px-3.5 text-ink-secondary">${d.detail}</td>
+            <td class="px-3.5 text-right text-ink tabular-nums">${d.count}</td>
+            <td class="pl-3.5 pr-6 text-right font-semibold text-navy tabular-nums">${formatPenalty(d.pct)}</td>
+          </tr>`;
+      }).join('');
+
+      body.innerHTML = `
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-left min-w-[760px] text-[14px]">
+            <thead>
+              <tr class="border-b border-divider">
+                <th scope="col" class="py-3 pl-6 pr-4 text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-secondary">Source</th>
+                <th scope="col" class="py-3 px-3.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-secondary">Reason</th>
+                <th scope="col" class="py-3 px-3.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-secondary">Details</th>
+                <th scope="col" class="py-3 px-3.5 text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-secondary">Count</th>
+                <th scope="col" class="py-3 pl-3.5 pr-6 text-right text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-secondary">Penalty</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-divider">${rowsHtml}</tbody>
+            <tfoot>
+              <tr class="h-[52px] border-t-2 border-[#E5E7EB]">
+                <td colspan="4" class="pl-6 pr-4 font-bold text-navy">Total Penalty</td>
+                <td class="pl-3.5 pr-6 text-right font-bold text-navy tabular-nums">${formatPenalty(total)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>`;
+    }
+
+    function lifetimeDeductions() {
+      const merged = {};
+      WEEKS.forEach((w, idx) => {
+        getDeductions(selectedEmpId, idx).forEach((d) => {
+          const key = `${d.itemId}|${d.reason}`;
+          if (!merged[key]) merged[key] = { ...d, count: 0, pct: 0, weeks: 0 };
+          merged[key].count += d.count;
+          merged[key].pct += d.pct;
+          merged[key].weeks += 1;
+        });
+      });
+      return Object.values(merged).map((d) => ({ ...d, detail: `Across ${d.weeks} ${d.weeks > 1 ? 'weeks' : 'week'}` }));
+    }
+
+    // ---------------------------------------------------------------
+    // Main render
+    // ---------------------------------------------------------------
+    function renderReport() {
+      weekLabelEl.textContent = weekLabelFor(selectedEmpId, currentWeekIndex);
+      document.getElementById('generatedAtLabel').textContent = isLifetime
+        ? 'All saved weekly reports'
+        : `Generated ${WEEKS[currentWeekIndex].generated}`;
+      const dateSpan = isLifetime ? 'All (Lifetime)' : weekShortFor(selectedEmpId, currentWeekIndex);
+
+      renderBreakdown(dateSpan);
+
+      let summary;
+      if (!isLifetime) {
+        const wk = computeWeek(currentWeekIndex);
+        summary = { ...wk, lastWeekScore: getLastWeekScore(), deductions: wk.deductions };
+      } else {
+        const weeks = WEEKS.map((_, idx) => computeWeek(idx));
+        const sum = (k) => weeks.reduce((s, w) => s + w[k], 0);
+        const assigned = sum('assigned');
+        const onTime = sum('onTime');
+        const done = sum('done');
+        summary = {
+          assigned, onTime, done,
+          carryForward: sum('carryForward'),
+          donePct: calcPct(done + onTime, assigned),
+          onTimePct: calcPct(onTime, assigned),
+          penalty: sum('penalty'),
+          // Lifetime: average of the saved weekly scores
+          score: weeks.reduce((s, w) => s + w.score, 0) / weeks.length,
+          lastWeekScore: null,
+          nextWeek: 0,
+          deductions: lifetimeDeductions()
+        };
+      }
+      updateSummaryCards(summary);
+      renderDeductions(summary.deductions);
+    }
+
+    function updateSummaryCards(s) {
+      // Lifetime: hide Last Week Score and Next Week Planned
+      document.getElementById('lastWeekComparisonBox').classList.toggle('hidden', isLifetime);
+      document.getElementById('nextWeekCard').classList.toggle('hidden', isLifetime);
+
+      // Weekly Score: final score, penalties included (best possible 0%)
+      document.getElementById('scoreCardHeading').textContent = isLifetime ? 'Average Weekly Score' : 'Weekly Score';
+      document.getElementById('currentScorePercent').textContent = formatSigned(s.score);
+      // Ring fills from -100% (empty) to 0% (full)
+      const circumference = 289.03;
+      const fill = Math.min(100, Math.max(0, s.score + 100));
+      document.getElementById('scoreRingArc').style.strokeDashoffset = (circumference - (fill / 100) * circumference).toFixed(2);
+      document.getElementById('currentScoreSubtext').textContent = isLifetime
+        ? `Average of ${WEEKS.length} saved weekly scores`
+        : getRoleSlot(selectedEmpId)
+          ? 'Includes the penalties listed under Deductions.'
+          : `No penalties apply to the ${EMPLOYEES[selectedEmpId].role} role.`;
+
+      if (!isLifetime) {
+        document.getElementById('lastWeekPercent').textContent = formatSigned(s.lastWeekScore);
+        const diff = s.score - s.lastWeekScore;
+        const absDiff = Math.abs(diff).toFixed(1);
+        document.getElementById('deltaText').textContent = Math.abs(diff) < 0.05
+          ? 'no change'
+          : `${absDiff} pts ${diff > 0 ? 'higher' : 'lower'} this week`;
+      }
+
+      // Report week figures
+      document.getElementById('workCardHeading').textContent = isLifetime ? 'Work across all report weeks' : 'Work in this report week';
+      document.getElementById('statAssigned').textContent = s.assigned;
+      document.getElementById('statDone').textContent = s.done + s.onTime;
+      document.getElementById('statOnDate').textContent = s.onTime;
+      document.getElementById('statCarry').textContent = s.carryForward;
+
+      // Done % ring (negative scale): fills from -100% (empty) to 0% (full)
+      const doneFill = s.donePct === null ? 0 : Math.min(100, Math.max(0, s.donePct));
+      document.getElementById('doneRingArc').style.strokeDashoffset = (circumference - (doneFill / 100) * circumference).toFixed(2);
+      document.getElementById('doneRingPercent').textContent = s.donePct === null ? 'No tasks' : formatSigned(s.donePct - 100);
+
+      // Next week (kept small)
+      document.getElementById('nextWeekCount').textContent = s.nextWeek;
+    }
+
+    // ---------------------------------------------------------------
+    // Filters and navigation
+    // ---------------------------------------------------------------
+    prevWeekBtn.addEventListener('click', () => {
+      if (isLifetime) setLifetimeState(false);
+      currentWeekIndex = (currentWeekIndex - 1 + WEEKS.length) % WEEKS.length;
+      renderReport();
+    });
+
+    nextWeekBtn.addEventListener('click', () => {
+      if (isLifetime) setLifetimeState(false);
+      currentWeekIndex = (currentWeekIndex + 1) % WEEKS.length;
+      renderReport();
+    });
+
+    function setLifetimeState(active) {
+      isLifetime = active;
+      lifetimeToggleBtn.setAttribute('aria-pressed', String(active));
+      lifetimeToggleBtn.classList.toggle('bg-navy-light', active);
+      lifetimeToggleBtn.classList.toggle('text-navy', active);
+      lifetimeToggleBtn.classList.toggle('font-semibold', active);
+      lifetimeToggleBtn.classList.toggle('border-navy/15', active);
+      lifetimeToggleBtn.classList.toggle('text-ink-secondary', !active);
+      lifetimeToggleBtn.classList.toggle('border-transparent', !active);
+      renderReport();
+    }
+
+    lifetimeToggleBtn.addEventListener('click', () => setLifetimeState(!isLifetime));
+
+    typeSegments.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        activeType = btn.dataset.type;
+        typeSegments.forEach((seg) => {
+          const isSelected = seg.dataset.type === activeType;
+          seg.classList.toggle('bg-white', isSelected);
+          seg.classList.toggle('text-ink', isSelected);
+          seg.classList.toggle('shadow-xs', isSelected);
+          seg.classList.toggle('text-ink-secondary', !isSelected);
+        });
+        renderItemDropdown();
+        renderReport();
+      });
+    });
+
+    itemDropdownBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (itemDropdownBtn.disabled) return;
+      const isHidden = itemDropdownMenu.classList.contains('hidden');
+      closeAllDropdowns();
+      if (isHidden) {
+        itemDropdownMenu.classList.remove('hidden');
+        itemDropdownBtn.setAttribute('aria-expanded', 'true');
+      }
+    });
+
+    employeeDropdownBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = employeeDropdownMenu.classList.contains('hidden');
+      closeAllDropdowns();
+      if (isHidden) {
+        employeeDropdownMenu.classList.remove('hidden');
+        employeeDropdownBtn.setAttribute('aria-expanded', 'true');
+      }
+    });
+
+    function closeAllDropdowns() {
+      itemDropdownMenu.classList.add('hidden');
+      itemDropdownBtn.setAttribute('aria-expanded', 'false');
+      employeeDropdownMenu.classList.add('hidden');
+      employeeDropdownBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    document.addEventListener('click', closeAllDropdowns);
+
+    // ---------------------------------------------------------------
+    // Source links (prototype feedback via toast)
+    // ---------------------------------------------------------------
+    let toastTimeout;
+    function showToast(text) {
+      const toast = document.getElementById('toastBanner');
+      document.getElementById('toastText').textContent = text;
+      toast.classList.remove('hidden');
+      toast.classList.add('flex');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('flex');
+      }, 3000);
+    }
+
+    function openItemSource(title, group) {
+      const dateSpan = isLifetime ? 'All (Lifetime)' : weekShortFor(selectedEmpId, currentWeekIndex);
+      const targetView = group === 'PMS' ? `${title} Story tab` : group === 'FMS' ? `${title} entry log` : 'Checklist task list';
+      showToast(`Opening ${targetView} (${selectedEmployeeShort}, ${dateSpan})`);
+    }
+
+    function openDeductionSource(title, kind) {
+      const dateSpan = isLifetime ? 'All (Lifetime)' : weekShortFor(selectedEmpId, currentWeekIndex);
+      const targetView = kind === 'project' ? `${title} project (weekly target)` : `${title} entries marked as Issue`;
+      showToast(`Opening ${targetView} (${dateSpan})`);
+    }
+
+    function preventNav(e) {
+      e.preventDefault();
+    }
+
+    // Mobile sidebar
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+    function toggleMobileSidebar(open) {
+      sidebar.classList.toggle('-translate-x-full', !open);
+      sidebarBackdrop.classList.toggle('hidden', !open);
+    }
+    mobileMenuBtn.addEventListener('click', () => toggleMobileSidebar(true));
+    sidebarBackdrop.addEventListener('click', () => toggleMobileSidebar(false));
+
+    // Initial render
+    renderEmployeeDropdown();
+    renderItemDropdown();
+    renderReport();
+  </script>
+</body>
+</html>
